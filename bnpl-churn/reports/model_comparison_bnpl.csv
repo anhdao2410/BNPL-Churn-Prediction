@@ -1,0 +1,4 @@
+Model,AUC,PR-AUC,F1 (churn),Precision,Recall,Accuracy
+Logistic Regression,0.9374,0.8265,0.6594,0.5315,0.8683,0.8389
+Random Forest,0.959,0.8787,0.7724,0.7839,0.7613,0.9194
+XGBoost,0.9573,0.8749,0.7629,0.7645,0.7613,0.915

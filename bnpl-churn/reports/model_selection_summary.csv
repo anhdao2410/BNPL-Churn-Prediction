@@ -1,0 +1,4 @@
+﻿Model,AUC,PR-AUC,F1 (churn),Precision,Recall,Accuracy,Khả năng diễn giải,Độ phức tạp huấn luyện,Độ nhạy với outlier,Phù hợp production
+Logistic Regression,0.9374,0.8265,0.6594,0.5315,0.8683,0.8389,Cao (hệ số tuyến tính),Thấp,Cao (cần chuẩn hóa),Dễ giám sát/giải trình
+Random Forest,0.959,0.8787,0.7724,0.7839,0.7613,0.9194,Trung bình (feature_importances_),Trung bình,Thấp,Cân bằng
+XGBoost,0.9573,0.8749,0.7629,0.7645,0.7613,0.915,Trung bình–Thấp (cần SHAP),Cao (nhiều siêu tham số),Thấp,"Hiệu năng cao nhất, cần theo dõi thêm"

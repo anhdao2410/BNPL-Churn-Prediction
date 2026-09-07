@@ -1,0 +1,13 @@
+{
+  "best_name": "XGBoost (tuned)",
+  "metrics_test": {
+    "AUC": 0.9573,
+    "PR-AUC": 0.8749,
+    "F1 (churn)": 0.7629,
+    "Precision": 0.7645,
+    "Recall": 0.7613,
+    "Accuracy": 0.915
+  },
+  "churn_rate": 0.17970714391362225,
+  "trained_at": "2026-09-06 03:24:09.446109"
+}

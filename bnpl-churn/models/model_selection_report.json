@@ -1,0 +1,24 @@
+{
+  "final_model": "XGBoost (tuned)",
+  "test_metrics": {
+    "AUC": 0.9573,
+    "PR-AUC": 0.8749,
+    "F1 (churn)": 0.7629,
+    "Precision": 0.7645,
+    "Recall": 0.7613,
+    "Accuracy": 0.915
+  },
+  "rationale": "Chọn XGBoost (tuned) làm mô hình cuối: hiệu năng AUC/Recall cận trên trong 3 mô hình, đã qua GridSearchCV, và SHAP xác nhận 4 đặc trưng hàng đầu (recency_days, txn_per_month, freq_180d, freq_90d) đều thuộc nhóm RFM có nền tảng lý thuyết ở Chương 2. Phương án thay thế nếu ưu tiên diễn giải: Random Forest (chênh AUC test 0.002).",
+  "top_shap_features": {
+    "recency_days": 0.8102999925613403,
+    "txn_per_month": 0.788100004196167,
+    "freq_180d": 0.6783999800682068,
+    "freq_90d": 0.4487999975681305,
+    "monetary_90d": 0.2696000039577484,
+    "aov": 0.2468000054359436,
+    "mean_inter_days": 0.23819999396800995,
+    "freq_total": 0.14710000157356262,
+    "monetary_total": 0.14020000398159027,
+    "amount_std": 0.13050000369548798
+  }
+}
