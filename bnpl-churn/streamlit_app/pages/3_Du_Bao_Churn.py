@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import (ACCENT, ACCENT_2, MUTED, apply_chart_style, section,  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app_utils import (ACCENT, ACCENT_2, MUTED, apply_chart_style, section,  # noqa: E402
                    load_artifact, load_customer_features, require)
 
 st.set_page_config(page_title="BNPL Churn — Dự báo", layout="wide")

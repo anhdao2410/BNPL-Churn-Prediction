@@ -8,8 +8,8 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from utils import ACCENT, ACCENT_2, MUTED, apply_chart_style, section, load_report, require  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app_utils import ACCENT, ACCENT_2, MUTED, apply_chart_style, section, load_report, require  # noqa: E402
 
 st.set_page_config(page_title="BNPL Churn — Cohort & Danh mục", layout="wide")
 apply_chart_style()

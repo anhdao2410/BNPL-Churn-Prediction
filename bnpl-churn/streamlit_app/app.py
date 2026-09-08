@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-from utils import (ACCENT, ACCENT_2, MUTED, CHURN_COLORS, apply_chart_style, section,
+from app_utils import (ACCENT, ACCENT_2, MUTED, CHURN_COLORS, apply_chart_style, section,
                    load_artifact, load_customer_features, require)
 
 st.set_page_config(page_title="BNPL Churn — Tổng quan", layout="wide")
