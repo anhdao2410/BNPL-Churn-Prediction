@@ -25,7 +25,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 
 ## 4. Wireframe 3 trang (4.2)
 
-**Trang 1 — 📊 Dashboard Tổng quan** (`app.py`)
+**Trang 1 — Tổng quan khách hàng** (`app.py`)
 ```
 │ [KPI: Số KH] [Churn % (active)] [Số KH FPU/RPU] [Churn nhóm No_Transaction] │
 │ [Sidebar lọc: Danh mục ưa thích / Phương thức thanh toán / Lifecycle segment]│
@@ -34,7 +34,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 │ [Expander: bảng dữ liệu + tải CSV]                                         │
 ```
 
-**Trang 2 — 📈 Cohort & Category Retention** (`pages/2_Cohort_Category.py`)
+**Trang 2 — Cohort & Category Retention** (`pages/2_Cohort_Category.py`)
 ```
 │ [Heatmap: Cohort MoM Retention]                                            │
 │ [Line: đường cong retention trung bình theo tháng]                        │
@@ -42,14 +42,21 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 │ [Bảng: FPU/RPU — số khách, tỷ trọng, churn rate]                          │
 ```
 
-**Trang 3 — 🔮 Dự báo Churn** (`pages/3_Du_Bao_Churn.py`)
+**Trang 3 — Dự báo Churn** (`pages/3_Du_Bao_Churn.py`)
 ```
 │ [Slider ngưỡng θ]                                                          │
 │ Tab 1: form các trường hành vi gần T_ref (tự sinh từ metadata model)      │
-│        → % churn + progress + hạng 🟢🟡🔴 + biểu đồ feature importance    │
+│        → % churn + progress + hạng mức rủi ro Thấp/Trung bình/Cao + biểu đồ SHAP    │
 │ Tab 2: upload CSV (đúng schema đặc trưng) → bảng kết quả + nút tải về     │
 ```
 
 ## 5. Trạng thái triển khai
-- ✅ Cả 3 trang code xong (T18), model dùng đúng `churn_model_final.pkl` (XGBoost tuned, AUC test 0,96).
-- ⏳ T19 (deploy) cần tài khoản Streamlit Community Cloud của nhóm: push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/app.py` → Deploy. Backup: quay video demo 2–3 phút.
+- Cả 3 trang code xong (T18), model dùng đúng `churn_model_final.pkl` (XGBoost tuned, AUC test 0,96).
+- T19 (deploy) cần tài khoản Streamlit Community Cloud của nhóm: push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/app.py` → Deploy. Backup: quay video demo 2–3 phút.
+
+## 6. Nguyên tắc giao diện (bản chỉnh sửa 08/09/2026)
+- Không dùng emoji/icon trong tiêu đề, nút, thông báo.
+- Bảng màu tiết chế: một màu chủ đạo (xanh đậm) cho biểu đồ, một màu nhấn (đỏ gạch) chỉ dành cho churn/cảnh báo, xám cho đường tham chiếu.
+- Biểu đồ matplotlib bỏ viền trên/phải, lưới mờ, chú thích số trực tiếp trên cột.
+- Mỗi mục bắt đầu bằng một dòng tiêu đề đậm + chú thích nhỏ; tránh nhiều hộp thông báo màu.
+- Form dự báo gom 23 trường số thành 4 nhóm (Hành vi gần đây / Lịch sử giao dịch / Thanh toán & rủi ro / Hồ sơ), 4 cột mỗi hàng.
