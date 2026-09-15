@@ -17,8 +17,20 @@ apply_chart_style()
 st.title("Dự báo nguy cơ rời bỏ")
 
 art = load_artifact()
-require(art, "mô hình (models/churn_model_final.pkl)",
-        "Chạy notebook 05_model_selection.ipynb để huấn luyện và lưu mô hình.")
+if art is None:
+    tried = st.session_state.get("model_load_error", [])
+    st.error("Không tải được mô hình dự báo, nên chức năng dự báo tạm thời không hoạt động.")
+    with st.expander("Chi tiết kỹ thuật và cách khắc phục"):
+        st.markdown(
+            "Ứng dụng đã tìm mô hình ở các vị trí sau nhưng không thấy:\n\n"
+            + "\n".join(f"- `{t}`" for t in tried)
+            + "\n\nCách khắc phục (chọn một):\n"
+            "1. Chạy notebook `BNPL_Churn_Prediction.ipynb` (mục 5) để sinh `models/churn_model_final.pkl`, "
+            "commit file này vào thư mục `models/` của repo (cùng cấp với `streamlit_app/`).\n"
+            "2. Hoặc tải file `.pkl` lên Google Drive (chia sẻ công khai) và điền link vào "
+            "`GDRIVE_MODEL_URL` trong `app_utils.py`."
+        )
+    st.stop()
 
 pipe = art["pipeline"]
 num_cols, cat_cols = art["num_cols"], art["cat_cols"]
@@ -83,12 +95,26 @@ with tab1:
         submitted = st.form_submit_button("Dự báo")
 
     if submitted:
-        row = pd.DataFrame([values])[num_cols + cat_cols]
-        proba = float(pipe.predict_proba(row)[0, 1])
+        try:
+            row = pd.DataFrame([values])[num_cols + cat_cols]
+            proba = float(pipe.predict_proba(row)[0, 1])
+            st.session_state["last_pred"] = {"proba": proba, "values": values}
+        except Exception as e:  # hiển thị lỗi cụ thể thay vì im lặng
+            st.session_state.pop("last_pred", None)
+            st.error(f"Dự báo thất bại: {type(e).__name__}: {e}")
+
+    # Kết quả được giữ trong session_state để không biến mất khi trang chạy lại
+    # (ví dụ khi kéo thanh ngưỡng θ sau khi đã bấm Dự báo).
+    last = st.session_state.get("last_pred")
+    if last is None:
+        st.caption("Bấm Dự báo để xem kết quả tại đây.")
+    else:
+        proba, values = last["proba"], last["values"]
         pred = proba >= threshold
         tier = "Thấp" if proba < 0.30 else ("Trung bình" if proba < 0.60 else "Cao")
 
         section("Kết quả")
+        st.success(f"Dự báo hoàn tất — xác suất churn {proba:.1%}.")
         r1, r2, r3 = st.columns(3)
         r1.metric("Xác suất churn", f"{proba:.1%}")
         r2.metric("Mức rủi ro", tier)
@@ -135,7 +161,11 @@ with tab2:
         if missing:
             st.error("Thiếu các cột bắt buộc: " + ", ".join(missing))
         else:
-            probas = pipe.predict_proba(batch[num_cols + cat_cols])[:, 1]
+            try:
+                probas = pipe.predict_proba(batch[num_cols + cat_cols])[:, 1]
+            except Exception as e:
+                st.error(f"Chấm điểm thất bại: {type(e).__name__}: {e}")
+                st.stop()
             out = batch.copy()
             out["churn_probability"] = probas.round(4)
             out["risk_tier"] = pd.cut(out["churn_probability"], [-0.01, 0.3, 0.6, 1.01],
