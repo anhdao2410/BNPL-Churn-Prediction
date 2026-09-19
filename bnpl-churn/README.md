@@ -18,8 +18,7 @@ bnpl-churn/
 │   └── bnpl_model_features.csv         # đặc trưng tính theo T_ref — dùng để train (T14)
 ├── notebooks/
 │   ├── 03_cohort_analysis.ipynb        # T13 — cohort MoM, FPU/RPU, category retention
-│   ├── 04_modeling.ipynb               # T14 — 3 model, đặc trưng leakage-safe (T_ref)
-│   └── 05_model_selection.ipynb        # T15 — SHAP, so sánh model, chọn model final
+│   └── BNPL_Churn_Prediction_v3.ipynb  # T14–T15 — notebook chính thức: train, tinh chỉnh, SHAP, xuất .pkl
 ├── models/
 │   └── churn_model_final.pkl           # ⭐ model app đang dùng (XGBoost tuned, AUC 0.96)
 ├── reports/                            # bảng số liệu + figures/ cho báo cáo & app
@@ -27,7 +26,7 @@ bnpl-churn/
     ├── app.py                          # 📊 Trang 1: Dashboard
     ├── pages/2_Cohort_Category.py      # 📈 Trang 2: Cohort & Category retention
     ├── pages/3_Du_Bao_Churn.py         # 🔮 Trang 3: Dự báo churn
-    ├── utils.py
+    ├── app_utils.py
     └── WIREFRAME.md                    # T17 — thiết kế UI/use-case cho mục 4.1
 ```
 

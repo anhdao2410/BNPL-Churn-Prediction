@@ -1,14 +1,14 @@
 {
   "final_model": "XGBoost (tuned)",
   "test_metrics": {
-    "AUC": 0.9573,
-    "PR-AUC": 0.8749,
-    "F1 (churn)": 0.7629,
-    "Precision": 0.7645,
-    "Recall": 0.7613,
-    "Accuracy": 0.915
+    "AUC": 0.96,
+    "PR-AUC": 0.8792,
+    "F1 (churn)": 0.7407,
+    "Precision": 0.6734,
+    "Recall": 0.823,
+    "Accuracy": 0.8965
   },
-  "rationale": "Chọn XGBoost (tuned) làm mô hình cuối: hiệu năng AUC/Recall cận trên trong 3 mô hình, đã qua GridSearchCV, và SHAP xác nhận 4 đặc trưng hàng đầu (recency_days, txn_per_month, freq_180d, freq_90d) đều thuộc nhóm RFM có nền tảng lý thuyết ở Chương 2. Phương án thay thế nếu ưu tiên diễn giải: Random Forest (chênh AUC test 0.002).",
+  "rationale": "Chọn XGBoost (tuned) làm mô hình cuối: năng lực xếp hạng tương đương Random Forest (ROC-AUC 0,960 so với 0,959; PR-AUC cùng 0,879) nhưng Recall lớp churn cao hơn (0,823 so với 0,761), phù hợp bài toán giữ chân; là mô hình duy nhất đã qua GridSearchCV (max_depth=3, learning_rate=0,05); SHAP xác nhận 4 đặc trưng hàng đầu (recency_days, txn_per_month, freq_180d, freq_90d) đều thuộc nhóm Recency/Frequency. Phương án thay thế nếu ưu tiên Precision: Random Forest.",
   "top_shap_features": {
     "recency_days": 0.8102999925613403,
     "txn_per_month": 0.788100004196167,
