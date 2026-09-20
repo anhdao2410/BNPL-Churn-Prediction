@@ -42,7 +42,7 @@ st.caption(f"{art['best_name']} · AUC {m.get('AUC', 0):.3f} · Recall {m.get('R
 threshold = st.slider("Ngưỡng phân lớp", 0.05, 0.95, 0.50, 0.05,
                       help="Hạ ngưỡng để bắt nhiều khách rủi ro hơn (tăng Recall), đổi lại nhiều cảnh báo nhầm hơn.")
 
-# Nhãn tiếng Việt + nhóm để bố cục form gọn
+
 GROUPS = {
     "Hành vi gần đây": ["recency_days", "freq_30d", "freq_90d", "freq_180d", "monetary_90d"],
     "Lịch sử giao dịch": ["freq_total", "tenure_days", "txn_per_month", "mean_inter_days",
@@ -126,7 +126,6 @@ with tab1:
             st.error(f"Dự báo thất bại: {type(e).__name__}: {e}")
 
     # Kết quả được giữ trong session_state để không biến mất khi trang chạy lại
-    # (ví dụ khi kéo thanh ngưỡng θ sau khi đã bấm Dự báo).
     last = st.session_state.get("last_pred")
     if last is None:
         st.caption("Bấm Dự báo để xem kết quả tại đây.")
