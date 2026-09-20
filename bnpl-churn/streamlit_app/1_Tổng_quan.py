@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Trang 1 — Tổng quan khách hàng BNPL. Chạy: streamlit run streamlit_app/app.py"""
+"""Trang 1 — Tổng quan khách hàng BNPL. Chạy: streamlit run streamlit_app/1_Tổng_quan.py"""
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -18,23 +18,95 @@ feat = load_customer_features()
 require(feat, "dữ liệu khách hàng (data/bnpl_customer_features.csv)",
         "Đặt file này vào thư mục data/ trước khi chạy.")
 
-active = feat[feat["lifecycle_segment"] != "No_Transaction"].copy()
-no_trx = feat[feat["lifecycle_segment"] == "No_Transaction"]
+# ---------- Kiểm tra cột bắt buộc ----------
+REQUIRED_COLS = ["churn_label", "top_category", "city_tier", "recency_days", "promo_rate"]
+missing = [c for c in REQUIRED_COLS if c not in feat.columns]
+if missing:
+    st.error("File đặc trưng thiếu các cột bắt buộc: " + ", ".join(missing))
+    st.caption("Các cột hiện có trong file: " + ", ".join(map(str, feat.columns)))
+    st.stop()
+
+# ---------- Xác định cột phân khúc vòng đời ----------
+# Bộ đặc trưng tính lại theo T_ref có thể không còn cột `lifecycle_segment`
+# (cột này từng bị loại vì gây rò rỉ dữ liệu). Dò theo tên thay thế, nếu vẫn
+# không có thì suy ra từ số giao dịch; nếu cũng không có thì bỏ chiều phân tích này.
+SEG_ORDER = ["FPU", "RPU_Early", "RPU_Mid", "RPU_Loyal"]
+NO_TRX = "No_Transaction"
+
+SEG_ALIASES = ["lifecycle_segment", "lifecycle_seg", "lifecycle",
+               "customer_segment", "segment"]
+TXN_COUNT_ALIASES = ["total_txn", "txn_count", "n_txn", "num_txn", "total_transactions",
+                     "n_transactions", "transaction_count", "total_orders", "order_count",
+                     "frequency"]
+
+
+def _first_present(df, names):
+    for n in names:
+        if n in df.columns:
+            return n
+    return None
+
+
+seg_col = _first_present(feat, SEG_ALIASES)
+seg_note = ""
+
+if seg_col is not None:
+    if seg_col != "lifecycle_segment":
+        feat = feat.rename(columns={seg_col: "lifecycle_segment"})
+    HAS_SEG = True
+else:
+    cnt_col = _first_present(feat, TXN_COUNT_ALIASES)
+    if cnt_col is not None:
+        n_txn = pd.to_numeric(feat[cnt_col], errors="coerce").fillna(0)
+        feat["lifecycle_segment"] = pd.cut(
+            n_txn,
+            bins=[-0.5, 0.5, 1.5, 4.5, 9.5, float("inf")],
+            labels=[NO_TRX, "FPU", "RPU_Early", "RPU_Mid", "RPU_Loyal"],
+        ).astype(str)
+        HAS_SEG = True
+        seg_note = (f"Phân khúc vòng đời được suy ra từ cột `{cnt_col}` "
+                    "(1 giao dịch = FPU; 2–4 = RPU_Early; 5–9 = RPU_Mid; ≥10 = RPU_Loyal).")
+    else:
+        HAS_SEG = False
+
+# ---------- Tách nhóm đã/chưa giao dịch ----------
+if HAS_SEG:
+    active = feat[feat["lifecycle_segment"] != NO_TRX].copy()
+    no_trx = feat[feat["lifecycle_segment"] == NO_TRX]
+else:
+    cnt_col = _first_present(feat, TXN_COUNT_ALIASES)
+    if cnt_col is not None:
+        n_txn = pd.to_numeric(feat[cnt_col], errors="coerce").fillna(0)
+        active = feat[n_txn > 0].copy()
+        no_trx = feat[n_txn <= 0]
+    else:
+        # Bộ đặc trưng đã lọc sẵn khách hàng có giao dịch
+        active = feat.copy()
+        no_trx = feat.iloc[0:0]
+
+if active.empty:
+    st.error("Không có khách hàng nào có giao dịch trong bộ dữ liệu.")
+    st.stop()
 
 # ---------- Sidebar: bộ lọc ----------
 st.sidebar.markdown("**Bộ lọc**")
 st.sidebar.caption("Áp dụng cho khách đã có giao dịch.")
 cat_opts = sorted(active["top_category"].dropna().unique())
-seg_opts = ["FPU", "RPU_Early", "RPU_Mid", "RPU_Loyal"]
 tier_opts = sorted(active["city_tier"].dropna().unique())
 
 f_cat = st.sidebar.multiselect("Danh mục thanh toán chính", cat_opts, default=cat_opts)
-f_seg = st.sidebar.multiselect("Phân khúc vòng đời", seg_opts, default=seg_opts)
 f_tier = st.sidebar.multiselect("Hạng thành phố", tier_opts, default=tier_opts)
 
-d = active[active["top_category"].isin(f_cat)
-           & active["lifecycle_segment"].isin(f_seg)
-           & active["city_tier"].isin(f_tier)]
+mask = active["top_category"].isin(f_cat) & active["city_tier"].isin(f_tier)
+
+if HAS_SEG:
+    present_segs = set(active["lifecycle_segment"].dropna().unique())
+    seg_opts = [s for s in SEG_ORDER if s in present_segs]
+    seg_opts += sorted(present_segs - set(SEG_ORDER))
+    f_seg = st.sidebar.multiselect("Phân khúc vòng đời", seg_opts, default=seg_opts)
+    mask &= active["lifecycle_segment"].isin(f_seg)
+
+d = active[mask]
 if d.empty:
     st.warning("Bộ lọc hiện tại không còn khách hàng nào.")
     st.stop()
@@ -54,22 +126,35 @@ if art:
     st.caption(f"Mô hình đang dùng: {art['best_name']} · AUC {m.get('AUC', 0):.3f} · "
                f"Recall {m.get('Recall', 0):.3f} · đặc trưng tính tại mốc T_ref = {art.get('T_ref', '—')}.")
 
+if seg_note:
+    st.caption(seg_note)
+
 # ---------- Churn theo vòng đời & danh mục ----------
 section("Churn theo phân khúc vòng đời và danh mục thanh toán")
-col1, col2 = st.columns(2)
 
-with col1:
-    order = [s for s in seg_opts if s in d["lifecycle_segment"].unique()]
-    rate = d.groupby("lifecycle_segment")["churn_label"].mean().reindex(order).mul(100)
-    fig, ax = plt.subplots(figsize=(6, 3.6))
-    ax.bar(rate.index, rate.values, color=ACCENT, width=0.6)
-    ax.axhline(overall * 100, color=MUTED, ls="--", lw=1)
-    for i, v in enumerate(rate.values):
-        ax.text(i, v + 1, f"{v:.1f}%", ha="center", fontsize=8.5)
-    ax.set_title("Theo phân khúc vòng đời")
-    ax.set_ylabel("Churn (%)"); ax.set_xlabel("")
-    ax.set_ylim(0, max(rate.max() * 1.15, 10))
-    st.pyplot(fig); plt.close(fig)
+if HAS_SEG:
+    col1, col2 = st.columns(2)
+else:
+    col2 = st.container()
+    col1 = None
+
+if col1 is not None:
+    with col1:
+        present = d["lifecycle_segment"].dropna().unique()
+        order = [s for s in SEG_ORDER if s in present]
+        order += sorted(set(present) - set(SEG_ORDER))
+        rate = d.groupby("lifecycle_segment")["churn_label"].mean().reindex(order).mul(100)
+        fig, ax = plt.subplots(figsize=(6, 3.6))
+        ax.bar(rate.index, rate.values, color=ACCENT, width=0.6)
+        ax.axhline(overall * 100, color=MUTED, ls="--", lw=1)
+        for i, v in enumerate(rate.values):
+            ax.text(i, v + 1, f"{v:.1f}%", ha="center", fontsize=8.5)
+        ax.set_title("Theo phân khúc vòng đời")
+        ax.set_ylabel("Churn (%)"); ax.set_xlabel("")
+        ax.set_ylim(0, max(rate.max() * 1.15, 10))
+        st.pyplot(fig); plt.close(fig)
+else:
+    st.info("Bộ đặc trưng hiện tại không có cột phân khúc vòng đời — biểu đồ theo vòng đời đã được bỏ qua.")
 
 with col2:
     rate = d.groupby("top_category")["churn_label"].mean().mul(100).sort_values()
@@ -95,7 +180,7 @@ with col3:
     ax.set_xlabel("Recency (ngày)"); ax.set_ylabel("Số khách")
     leg = ax.get_legend()
     if leg:
-        leg.set_title(""); 
+        leg.set_title("")
         for t, lab in zip(leg.texts, ["Ở lại", "Churn"]):
             t.set_text(lab)
     st.pyplot(fig); plt.close(fig)
