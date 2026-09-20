@@ -59,7 +59,7 @@ def load_transactions():
 
 @st.cache_data(show_spinner=False)
 def load_customer_features():
-    p = DATA_DIR / "bnpl_customer_features.csv"
+    p = DATA_DIR / "bnpl_model_features.csv"
     return pd.read_csv(p) if p.exists() else None
 
 

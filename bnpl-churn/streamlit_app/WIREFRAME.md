@@ -1,5 +1,4 @@
 # WIREFRAME & THIẾT KẾ UI — WEB APP DỰ BÁO CHURN BNPL
-### Task T17 (Đào, Lan input yêu cầu) · Tư liệu cho mục 4.1 (Yêu cầu, Use-case, Kiến trúc) của báo cáo
 
 ## 1. Yêu cầu chức năng (4.1.1)
 - **F1** Dashboard tổng quan: KPI churn, phân bố vòng đời khách hàng (FPU/RPU), bộ lọc theo danh mục/phương thức thanh toán.
@@ -51,11 +50,10 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 ```
 
 ## 5. Trạng thái triển khai
-- Cả 3 trang code xong (T18), model dùng đúng `churn_model_final.pkl` (XGBoost tuned, AUC test 0,96).
-- T19 (deploy) cần tài khoản Streamlit Community Cloud của nhóm: push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/app.py` → Deploy. Backup: quay video demo 2–3 phút.
+- model dùng đúng `churn_model_final.pkl` (XGBoost tuned, AUC test 0,96).
+- push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/app.py` → Deploy. 
 
 ## 6. Nguyên tắc giao diện (bản chỉnh sửa 08/09/2026)
-- Không dùng emoji/icon trong tiêu đề, nút, thông báo.
 - Bảng màu tiết chế: một màu chủ đạo (xanh đậm) cho biểu đồ, một màu nhấn (đỏ gạch) chỉ dành cho churn/cảnh báo, xám cho đường tham chiếu.
 - Biểu đồ matplotlib bỏ viền trên/phải, lưới mờ, chú thích số trực tiếp trên cột.
 - Mỗi mục bắt đầu bằng một dòng tiêu đề đậm + chú thích nhỏ; tránh nhiều hộp thông báo màu.

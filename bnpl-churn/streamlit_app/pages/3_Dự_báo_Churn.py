@@ -52,19 +52,33 @@ GROUPS = {
                          "credit_limit_vnd", "account_age_days"],
 }
 VN = {
-    "recency_days": "Ngày từ giao dịch gần nhất", "freq_30d": "Số giao dịch 30 ngày",
-    "freq_90d": "Số giao dịch 90 ngày", "freq_180d": "Số giao dịch 180 ngày",
-    "monetary_90d": "Chi tiêu 90 ngày (VNĐ)", "freq_total": "Tổng số giao dịch",
-    "tenure_days": "Ngày từ giao dịch đầu tiên", "txn_per_month": "Giao dịch / tháng",
-    "mean_inter_days": "Khoảng cách TB giữa giao dịch (ngày)", "monetary_total": "Tổng chi tiêu (VNĐ)",
-    "aov": "Giá trị giao dịch TB (VNĐ)", "amount_std": "Độ lệch chuẩn giá trị",
-    "unique_categories": "Số danh mục đã dùng", "late_rate": "Tỷ lệ trả trễ",
-    "partial_rate": "Tỷ lệ trả một phần", "promo_rate": "Tỷ lệ có khuyến mãi",
-    "suspicious_count": "Số giao dịch nghi ngờ", "age": "Tuổi", "city_tier": "Hạng thành phố",
-    "kyc_verified": "Đã eKYC (0/1)", "phone_verified": "Đã xác thực SĐT (0/1)",
-    "credit_limit_vnd": "Hạn mức (VNĐ)", "account_age_days": "Tuổi tài khoản (ngày)",
-    "top_category": "Danh mục thanh toán chính", "gender": "Giới tính",
-    "device_type": "Thiết bị", "referral_source": "Kênh giới thiệu",
+    "recency_days": "Thời gian từ lần giao dịch gần nhất (ngày)",
+    "freq_30d": "Số lượng giao dịch trong 30 ngày gần nhất",
+    "freq_90d": "Số lượng giao dịch trong 90 ngày gần nhất",
+    "freq_180d": "Số lượng giao dịch trong 180 ngày gần nhất",
+    "monetary_90d": "Tổng chi tiêu trong 90 ngày gần nhất (VNĐ)",
+    "freq_total": "Tổng số giao dịch",
+    "tenure_days": "Số ngày từ lần giao dịch đầu tiên",
+    "txn_per_month": "Số giao dịch / tháng",
+    "mean_inter_days": "Thời gian trung bình giữa các giao dịch (ngày)",
+    "monetary_total": "Tổng chi tiêu (VNĐ)",
+    "aov": "Giá trị giao dịch trung bình (VNĐ)",
+    "amount_std": "Độ lệch chuẩn giá trị giao dịch",
+    "unique_categories": "Số danh mục đã dùng",
+    "late_rate": "Tỷ lệ trả nợ trễ",
+    "partial_rate": "Tỷ lệ trả nợ một phần",
+    "promo_rate": "Tỷ lệ thanh toán có sử dụng khuyến mãi",
+    "suspicious_count": "Số lượng giao dịch đáng ngờ",
+    "age": "Tuổi",
+    "city_tier": "Hạng thành phố",
+    "kyc_verified": "Đã eKYC (0/1)",
+    "phone_verified": "Đã xác thực số điện thoại (0/1)",
+    "credit_limit_vnd": "Hạn mức (VNĐ)",
+    "account_age_days": "Tuổi tài khoản (ngày)",
+    "top_category": "Danh mục thanh toán chính",
+    "gender": "Giới tính",
+    "device_type": "Thiết bị",
+    "referral_source": "Kênh giới thiệu",
 }
 
 tab1, tab2 = st.tabs(["Một khách hàng", "Hàng loạt (CSV)"])
@@ -75,9 +89,17 @@ with tab1:
         st.caption("Giá trị mặc định là trung vị toàn bộ dữ liệu — chỉnh để thử nghiệm.")
         values = {}
 
+        GENDER_DISPLAY = {"Male": "Nam", "Female": "Nữ", "Other": "Khác"}
+        GENDER_REVERSE = {v: k for k, v in GENDER_DISPLAY.items()}
+
         cols = st.columns(len(cat_cols))
         for i, c in enumerate(cat_cols):
-            values[c] = cols[i].selectbox(VN.get(c, c), cat_values[c])
+            if c == "gender":
+                display_options = [GENDER_DISPLAY.get(g, g) for g in cat_values[c]]
+                selected = cols[i].selectbox(VN.get(c, c), display_options)
+                values[c] = GENDER_REVERSE.get(selected, selected)
+            else:
+                values[c] = cols[i].selectbox(VN.get(c, c), cat_values[c])
 
         for group, fields in GROUPS.items():
             fields = [f for f in fields if f in num_cols]
