@@ -4,7 +4,7 @@
 - **F1** Dashboard tổng quan: KPI churn, phân bố vòng đời khách hàng (FPU/RPU), bộ lọc theo danh mục/phương thức thanh toán.
 - **F2** Phân tích Cohort MoM Retention + Retention theo Danh mục thanh toán (signature insight của đề tài).
 - **F3** Dự báo xác suất churn cho 1 khách hàng nhập tay, kèm biểu đồ feature importance; chấm điểm hàng loạt qua CSV.
-- **Phi chức năng:** chạy được local (`streamlit run app.py`) và Streamlit Community Cloud; dùng đúng model đã chọn ở T15 (`churn_model_final.pkl`, XGBoost đã tinh chỉnh, đặc trưng tính theo mốc `T_ref` — không dùng bảng snapshot có rò rỉ nhãn); giao diện tiếng Việt.
+- **Phi chức năng:** chạy được local (`streamlit run 1_Tổng_quan.py`) và Streamlit Community Cloud; dùng đúng model đã chọn ở T15 (`churn_model_final.pkl`, XGBoost đã tinh chỉnh, đặc trưng tính theo mốc `T_ref` — không dùng bảng snapshot có rò rỉ nhãn); giao diện tiếng Việt.
 
 ## 2. Use-case chính (4.1.2)
 Nhân viên CSKH/phân tích mở Dashboard xem tình hình chung → sang trang Cohort/Category xem nhóm khách và danh mục nào giữ chân tốt/kém → sang trang Dự báo: nhập hồ sơ 1 khách hoặc upload danh sách toàn bộ → nhận xác suất churn + phân hạng rủi ro → xuất danh sách nhóm rủi ro cao cho chiến dịch giữ chân.
@@ -24,7 +24,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 
 ## 4. Wireframe 3 trang (4.2)
 
-**Trang 1 — Tổng quan khách hàng** (`app.py`)
+**Trang 1 — Tổng quan khách hàng** (`1_Tổng_quan.py`)
 ```
 │ [KPI: Số KH] [Churn % (active)] [Số KH FPU/RPU] [Churn nhóm No_Transaction] │
 │ [Sidebar lọc: Danh mục ưa thích / Phương thức thanh toán / Lifecycle segment]│
@@ -33,7 +33,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 │ [Expander: bảng dữ liệu + tải CSV]                                         │
 ```
 
-**Trang 2 — Cohort & Category Retention** (`pages/2_Cohort_Category.py`)
+**Trang 2 — Cohort & Category Retention** (`pages/2_Cohort_và_Danh_mục.py`)
 ```
 │ [Heatmap: Cohort MoM Retention]                                            │
 │ [Line: đường cong retention trung bình theo tháng]                        │
@@ -41,7 +41,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 │ [Bảng: FPU/RPU — số khách, tỷ trọng, churn rate]                          │
 ```
 
-**Trang 3 — Dự báo Churn** (`pages/3_Du_Bao_Churn.py`)
+**Trang 3 — Dự báo Churn** (`pages/3_Dự_báo_Churn.py`)
 ```
 │ [Slider ngưỡng θ]                                                          │
 │ Tab 1: form các trường hành vi gần T_ref (tự sinh từ metadata model)      │
@@ -51,7 +51,7 @@ Model dùng trong app **không** được huấn luyện trực tiếp trên `bn
 
 ## 5. Trạng thái triển khai
 - model dùng đúng `churn_model_final.pkl` (XGBoost tuned, AUC test 0,96).
-- push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/app.py` → Deploy. 
+- push repo lên GitHub → share.streamlit.io → New app → chọn repo, main file `streamlit_app/1_Tổng_quan.py` → Deploy. 
 
 ## 6. Nguyên tắc giao diện (bản chỉnh sửa 08/09/2026)
 - Bảng màu tiết chế: một màu chủ đạo (xanh đậm) cho biểu đồ, một màu nhấn (đỏ gạch) chỉ dành cho churn/cảnh báo, xám cho đường tham chiếu.

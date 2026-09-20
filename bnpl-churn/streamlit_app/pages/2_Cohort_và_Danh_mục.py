@@ -28,7 +28,14 @@ require(cohort_matrix, "reports/cohort_retention_matrix.csv",
 
 # ---------- 1. Cohort ----------
 mat = cohort_matrix.apply(pd.to_numeric, errors="coerce")
-mean_curve = mat.mean(axis=0, skipna=True)
+
+# Retention trung bình chỉ tính trên các cohort "chín" (quan sát được >= 6 tháng vòng đời,
+# tức cohort 01-07/2024) — đúng quy tắc MATURE_MIN_PERIODS = 6 của notebook 03, để ba mốc
+# tháng 1/3/6 khớp với mục 3.3.3 báo cáo (68,7% / 73,5% / 71,1%). Nếu lấy trung bình mọi cohort,
+# các cohort cuối năm (mới quan sát 1-2 tháng, retention tháng 1 thấp) sẽ kéo mốc tháng 1 xuống ~63,8%.
+MATURE_MIN_PERIODS = 6
+mature = mat[mat.notna().sum(axis=1) >= MATURE_MIN_PERIODS]
+mean_curve = mature.mean(axis=0, skipna=True)
 
 def _get(k):
     return mean_curve.get(str(k), mean_curve.get(k, float("nan")))
@@ -37,7 +44,9 @@ c1, c2, c3 = st.columns(3)
 c1.metric("Retention trung bình — tháng 1", f"{_get(1):.1f}%")
 c2.metric("Tháng 3", f"{_get(3):.1f}%")
 c3.metric("Tháng 6", f"{_get(6):.1f}%")
-st.caption("Sụt giảm lớn nhất xảy ra ngay tháng đầu tiên; sau đó đường cong đi ngang — "
+st.caption(f"Trung bình trên {len(mature)} cohort đã quan sát được ít nhất {MATURE_MIN_PERIODS} tháng vòng đời "
+           f"({mature.index[0]} → {mature.index[-1]}). "
+           "Sụt giảm lớn nhất xảy ra ngay tháng đầu tiên; sau đó đường cong đi ngang — "
            "giữ chân hiệu quả nhất trong 30 ngày đầu sau giao dịch đầu tiên.")
 
 section("Ma trận Cohort MoM Retention (%)")

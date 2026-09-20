@@ -9,7 +9,7 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app_utils import (ACCENT, ACCENT_2, MUTED, apply_chart_style, section,  # noqa: E402
-                   load_artifact, load_customer_features, require)
+                   load_artifact, load_model_features, require)
 
 st.set_page_config(page_title="BNPL Churn — Dự báo", layout="wide")
 apply_chart_style()
@@ -164,10 +164,12 @@ with tab1:
 
 # ---------- Tab 2 ----------
 with tab2:
-    st.caption("File CSV cần có đúng các cột đặc trưng đầu vào, tính tại cùng mốc T_ref như notebook 04. "
-               "Cột khác nếu có sẽ được giữ nguyên trong kết quả.")
+    st.caption("File CSV cần có đúng các cột đặc trưng đầu vào, tính tại cùng mốc T_ref như notebook "
+               "BNPL_Churn_Prediction.ipynb (mục 4). Cột khác nếu có sẽ được giữ nguyên trong kết quả.")
 
-    feat = load_customer_features()
+    # File mẫu lấy từ bảng đặc trưng T_ref (bnpl_model_features.csv) — đúng bộ cột mô hình cần,
+    # KHÔNG lấy từ bảng toàn kỳ (bnpl_customer_features.csv) vốn chỉ dùng cho EDA.
+    feat = load_model_features()
     if feat is not None:
         demo_cols = [c for c in (["customer_id"] + num_cols + cat_cols) if c in feat.columns]
         sample = feat[demo_cols].dropna().head(5)
