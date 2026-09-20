@@ -111,10 +111,6 @@ elif cnt_col is not None:
         labels=[NO_TRX, "FPU", "RPU_Early", "RPU_Mid", "RPU_Loyal"],
     ).astype(str)
     HAS_SEG = True
-    seg_note = (
-        f"Phân khúc vòng đời suy ra từ `{cnt_col}`: 1 giao dịch = FPU · "
-        "2–4 = RPU_Early · 5–9 = RPU_Mid · từ 10 trở lên = RPU_Loyal."
-    )
 else:
     HAS_SEG = False
 
