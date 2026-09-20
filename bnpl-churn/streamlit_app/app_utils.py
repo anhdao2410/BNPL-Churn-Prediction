@@ -13,11 +13,10 @@ MODELS_DIR = ROOT / "models"
 REPORTS_DIR = ROOT / "reports"
 
 
-# Bảng màu tiết chế: 1 màu chủ đạo + 1 màu nhấn + xám trung tính
-ACCENT = "#2F5D8A"      # xanh đậm — phần lớn biểu đồ
-ACCENT_2 = "#C0504D"    # đỏ gạch — chỉ dùng cho churn / cảnh báo
-MUTED = "#9AA5B1"       # xám — đường tham chiếu, nhãn phụ
-LIGHT = "#E6ECF2"       # xám nhạt — lưới, khung
+ACCENT = "#2F5D8A"      
+ACCENT_2 = "#C0504D"    
+MUTED = "#9AA5B1"       
+LIGHT = "#E6ECF2"      
 
 CHURN_COLORS = {0: ACCENT, 1: ACCENT_2}
 
@@ -60,16 +59,6 @@ def load_transactions():
 
 @st.cache_data(show_spinner=False)
 def load_customer_features():
-    """Bảng đặc trưng TOÀN KỲ (T11) — 43 cột, có lifecycle_segment/churn_label.
-    Chỉ dùng cho EDA ở Trang 1-2 (mục 3.3 báo cáo). KHÔNG dùng để huấn luyện/dự báo."""
-    p = DATA_DIR / "bnpl_customer_features.csv"
-    return pd.read_csv(p) if p.exists() else None
-
-
-@st.cache_data(show_spinner=False)
-def load_model_features():
-    """Bảng đặc trưng tính tại mốc T_ref (T14) — 27 đặc trưng + churn.
-    Dùng cho Trang 3 (file mẫu chấm điểm hàng loạt) và huấn luyện (mục 3.4 báo cáo)."""
     p = DATA_DIR / "bnpl_model_features.csv"
     return pd.read_csv(p) if p.exists() else None
 
