@@ -1,13 +1,13 @@
 import json
+
+import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib
 import shap
-
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 
 plt.rcParams["figure.dpi"] = 110
 sns.set_theme(style="whitegrid")
@@ -25,22 +25,36 @@ num_cols, cat_cols = artifact["num_cols"], artifact["cat_cols"]
 
 X = feat[num_cols + cat_cols]
 y = feat["churn"].astype(int)
-X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE)
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE
+)
 
-print(f"Tái tạo train/test giống hệt T14 - Test AUC kiểm tra: "
-      f"{roc_auc_score(y_te, artifact['pipeline'].predict_proba(X_te)[:, 1]):.4f} "
-      f"(phải khớp số trong model_comparison_bnpl.csv)")
+print(
+    f"Tái tạo train/test giống hệt T14 - Test AUC kiểm tra: "
+    f"{roc_auc_score(y_te, artifact['pipeline'].predict_proba(X_te)[:, 1]):.4f} "
+    f"(phải khớp số trong model_comparison_bnpl.csv)"
+)
 
 results = pd.read_csv(f"{REPORTS_DIR}/model_comparison_bnpl.csv", index_col="Model")
 results
 
-qualitative = pd.DataFrame({
-    "Khả năng diễn giải": ["Cao (hệ số tuyến tính)", "Trung bình (feature_importances_)",
-                           "Trung bình-Thấp (cần SHAP)"],
-    "Độ phức tạp huấn luyện": ["Thấp", "Trung bình", "Cao (nhiều siêu tham số)"],
-    "Độ nhạy với outlier": ["Cao (cần chuẩn hóa)", "Thấp", "Thấp"],
-    "Phù hợp production": ["Dễ giám sát/giải trình", "Cân bằng", "Hiệu năng cao nhất, cần theo dõi thêm"],
-}, index=["Logistic Regression", "Random Forest", "XGBoost"])
+qualitative = pd.DataFrame(
+    {
+        "Khả năng diễn giải": [
+            "Cao (hệ số tuyến tính)",
+            "Trung bình (feature_importances_)",
+            "Trung bình-Thấp (cần SHAP)",
+        ],
+        "Độ phức tạp huấn luyện": ["Thấp", "Trung bình", "Cao (nhiều siêu tham số)"],
+        "Độ nhạy với outlier": ["Cao (cần chuẩn hóa)", "Thấp", "Thấp"],
+        "Phù hợp production": [
+            "Dễ giám sát/giải trình",
+            "Cân bằng",
+            "Hiệu năng cao nhất, cần theo dõi thêm",
+        ],
+    },
+    index=["Logistic Regression", "Random Forest", "XGBoost"],
+)
 
 summary_table = results.join(qualitative)
 summary_table.to_csv(f"{REPORTS_DIR}/model_selection_summary.csv", encoding="utf-8-sig")
@@ -48,20 +62,34 @@ summary_table
 
 fig, axes = plt.subplots(1, 2, figsize=(13, 4.6))
 metrics_plot = results[["AUC", "PR-AUC", "F1 (churn)", "Recall"]]
-metrics_plot.plot(kind="bar", ax=axes[0], color=["#2a9d8f", "#457b9d", "#f2b134", "#e76f51"])
-axes[0].set_ylim(0, 1); axes[0].set_ylabel("Điểm số")
+metrics_plot.plot(
+    kind="bar", ax=axes[0], color=["#2a9d8f", "#457b9d", "#f2b134", "#e76f51"]
+)
+axes[0].set_ylim(0, 1)
+axes[0].set_ylabel("Điểm số")
 axes[0].set_title("So sánh 4 chỉ số chính giữa 3 mô hình")
-axes[0].legend(fontsize=8, ncol=2); axes[0].tick_params(axis="x", rotation=15)
+axes[0].legend(fontsize=8, ncol=2)
+axes[0].tick_params(axis="x", rotation=15)
 
-axes[1].scatter(results["Precision"], results["Recall"], s=180,
-               c=["#457b9d", "#2a9d8f", "#e76f51"])
+axes[1].scatter(
+    results["Precision"], results["Recall"], s=180, c=["#457b9d", "#2a9d8f", "#e76f51"]
+)
 for name, row in results.iterrows():
-    axes[1].annotate(name, (row["Precision"], row["Recall"]),
-                     textcoords="offset points", xytext=(8, 6), fontsize=9)
-axes[1].set_xlabel("Precision"); axes[1].set_ylabel("Recall")
+    axes[1].annotate(
+        name,
+        (row["Precision"], row["Recall"]),
+        textcoords="offset points",
+        xytext=(8, 6),
+        fontsize=9,
+    )
+axes[1].set_xlabel("Precision")
+axes[1].set_ylabel("Recall")
 axes[1].set_title("Đánh đổi Precision-Recall")
-axes[1].set_xlim(0.4, 1); axes[1].set_ylim(0.6, 1)
-plt.tight_layout(); plt.savefig(f"{FIG_DIR}/model_comparison_summary.png", bbox_inches="tight"); plt.show()
+axes[1].set_xlim(0.4, 1)
+axes[1].set_ylim(0.6, 1)
+plt.tight_layout()
+plt.savefig(f"{FIG_DIR}/model_comparison_summary.png", bbox_inches="tight")
+plt.show()
 
 pipe = artifact["pipeline"]
 pre, clf = pipe.named_steps["pre"], pipe.named_steps["clf"]
@@ -80,21 +108,35 @@ plt.tight_layout()
 plt.savefig(f"{FIG_DIR}/shap_summary_beeswarm.png", bbox_inches="tight", dpi=110)
 plt.show()
 
-mean_abs_shap = pd.Series(np.abs(shap_values).mean(axis=0), index=feature_names).sort_values(ascending=False)
+mean_abs_shap = pd.Series(
+    np.abs(shap_values).mean(axis=0), index=feature_names
+).sort_values(ascending=False)
 fig, ax = plt.subplots(figsize=(8, 6))
 mean_abs_shap.head(15).sort_values().plot(kind="barh", ax=ax, color="#2a9d8f")
 ax.set_xlabel("Mean |SHAP value| - mức ảnh hưởng trung bình đến xác suất churn")
 ax.set_title(f"Top 15 đặc trưng quan trọng nhất theo SHAP - {artifact['best_name']}")
-plt.tight_layout(); plt.savefig(f"{FIG_DIR}/shap_importance_bar.png", bbox_inches="tight"); plt.show()
+plt.tight_layout()
+plt.savefig(f"{FIG_DIR}/shap_importance_bar.png", bbox_inches="tight")
+plt.show()
 
 mean_abs_shap.head(10).round(4)
 
-default_imp = pd.Series(clf.feature_importances_, index=feature_names).sort_values(ascending=False)
-compare = pd.DataFrame({
-    "SHAP rank": mean_abs_shap.rank(ascending=False).astype(int),
-    "feature_importances_ rank": default_imp.rank(ascending=False).astype(int),
-}).sort_values("SHAP rank").head(10)
-print("Đối chiếu thứ hạng Top 10 đặc trưng giữa hai phương pháp - càng gần nhau càng đáng tin cậy:")
+default_imp = pd.Series(clf.feature_importances_, index=feature_names).sort_values(
+    ascending=False
+)
+compare = (
+    pd.DataFrame(
+        {
+            "SHAP rank": mean_abs_shap.rank(ascending=False).astype(int),
+            "feature_importances_ rank": default_imp.rank(ascending=False).astype(int),
+        }
+    )
+    .sort_values("SHAP rank")
+    .head(10)
+)
+print(
+    "Đối chiếu thứ hạng Top 10 đặc trưng giữa hai phương pháp - càng gần nhau càng đáng tin cậy:"
+)
 compare
 
 final_name = artifact["best_name"]
@@ -116,14 +158,24 @@ final_artifact = {
 joblib.dump(final_artifact, f"{MODELS_DIR}/churn_model_final.pkl")
 
 with open(f"{MODELS_DIR}/model_selection_report.json", "w", encoding="utf-8") as f:
-    json.dump({
-        "final_model": final_name,
-        "test_metrics": final_metrics,
-        "rationale": final_artifact["selection_rationale"],
-        "top_shap_features": final_artifact["top_shap_features"],
-    }, f, ensure_ascii=False, indent=2)
+    json.dump(
+        {
+            "final_model": final_name,
+            "test_metrics": final_metrics,
+            "rationale": final_artifact["selection_rationale"],
+            "top_shap_features": final_artifact["top_shap_features"],
+        },
+        f,
+        ensure_ascii=False,
+        indent=2,
+    )
 
 chk = joblib.load(f"{MODELS_DIR}/churn_model_final.pkl")
 print(f"Đã lưu ../models/churn_model_final.pkl - mô hình: {chk['best_name']}")
-print(f"   Test AUC: {chk['metrics_test']['AUC']} | Recall: {chk['metrics_test']['Recall']}")
-print("Load lại OK, demo proba:", chk["pipeline"].predict_proba(X_te.iloc[:3])[:, 1].round(3))
+print(
+    f"   Test AUC: {chk['metrics_test']['AUC']} | Recall: {chk['metrics_test']['Recall']}"
+)
+print(
+    "Load lại OK, demo proba:",
+    chk["pipeline"].predict_proba(X_te.iloc[:3])[:, 1].round(3),
+)

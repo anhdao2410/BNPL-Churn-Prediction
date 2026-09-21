@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-"""Trang 3 — Dự báo nguy cơ churn: từng khách hàng và chấm điểm hàng loạt."""
 import sys
 from pathlib import Path
 
@@ -8,10 +6,16 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app_utils import (ACCENT, ACCENT_2, MUTED, apply_chart_style, section,  # noqa: E402
-                   load_artifact, load_model_features, require)
+from app_utils import (
+    ACCENT,
+    MUTED,
+    apply_chart_style,
+    load_artifact,
+    load_model_features,
+    section,
+)
 
-st.set_page_config(page_title="BNPL Churn — Dự báo", layout="wide")
+st.set_page_config(page_title="BNPL Churn - Dự báo", layout="wide")
 apply_chart_style()
 
 st.title("Dự báo nguy cơ rời bỏ")
@@ -36,12 +40,11 @@ pipe = art["pipeline"]
 num_cols, cat_cols = art["num_cols"], art["cat_cols"]
 num_stats, cat_values = art["num_stats"], art["cat_values"]
 m = art.get("metrics_test", {})
-st.caption(f"{art['best_name']} · AUC {m.get('AUC', 0):.3f} · Recall {m.get('Recall', 0):.3f} · "
-           f"Precision {m.get('Precision', 0):.3f} · đặc trưng tính tại mốc T_ref = {art.get('T_ref', '—')}.")
+st.caption(f"{art['best_name']} - AUC {m.get('AUC', 0):.3f} - Recall {m.get('Recall', 0):.3f} - "
+           f"Precision {m.get('Precision', 0):.3f} - đặc trưng tính tại mốc T_ref = {art.get('T_ref', '-')}.")
 
 threshold = st.slider("Ngưỡng phân lớp", 0.05, 0.95, 0.50, 0.05,
                       help="Hạ ngưỡng để bắt nhiều khách rủi ro hơn (tăng Recall), đổi lại nhiều cảnh báo nhầm hơn.")
-
 
 GROUPS = {
     "Hành vi gần đây": ["recency_days", "freq_30d", "freq_90d", "freq_180d", "monetary_90d"],
@@ -83,10 +86,9 @@ VN = {
 
 tab1, tab2 = st.tabs(["Một khách hàng", "Hàng loạt (CSV)"])
 
-# ---------- Tab 1 ----------
 with tab1:
     with st.form("predict_form"):
-        st.caption("Giá trị mặc định là trung vị toàn bộ dữ liệu — chỉnh để thử nghiệm.")
+        st.caption("Giá trị mặc định là trung vị toàn bộ dữ liệu - chỉnh để thử nghiệm.")
         values = {}
 
         GENDER_DISPLAY = {"Male": "Nam", "Female": "Nữ", "Other": "Khác"}
@@ -121,11 +123,10 @@ with tab1:
             row = pd.DataFrame([values])[num_cols + cat_cols]
             proba = float(pipe.predict_proba(row)[0, 1])
             st.session_state["last_pred"] = {"proba": proba, "values": values}
-        except Exception as e:  # hiển thị lỗi cụ thể thay vì im lặng
+        except Exception as e:
             st.session_state.pop("last_pred", None)
             st.error(f"Dự báo thất bại: {type(e).__name__}: {e}")
 
-    # Kết quả được giữ trong session_state để không biến mất khi trang chạy lại
     last = st.session_state.get("last_pred")
     if last is None:
         st.caption("Bấm Dự báo để xem kết quả tại đây.")
@@ -135,7 +136,7 @@ with tab1:
         tier = "Thấp" if proba < 0.30 else ("Trung bình" if proba < 0.60 else "Cao")
 
         section("Kết quả")
-        st.success(f"Dự báo hoàn tất — xác suất churn {proba:.1%}.")
+        st.success(f"Dự báo hoàn tất - xác suất churn {proba:.1%}.")
         r1, r2, r3 = st.columns(3)
         r1.metric("Xác suất churn", f"{proba:.1%}")
         r2.metric("Mức rủi ro", tier)
@@ -162,13 +163,10 @@ with tab1:
                 ax.set_xlabel("Mean |SHAP|")
                 st.pyplot(fig); plt.close(fig)
 
-# ---------- Tab 2 ----------
 with tab2:
     st.caption("File CSV cần có đúng các cột đặc trưng đầu vào, tính tại cùng mốc T_ref như notebook "
                "BNPL_Churn_Prediction.ipynb (mục 4). Cột khác nếu có sẽ được giữ nguyên trong kết quả.")
 
-    # File mẫu lấy từ bảng đặc trưng T_ref (bnpl_model_features.csv) — đúng bộ cột mô hình cần,
-    # KHÔNG lấy từ bảng toàn kỳ (bnpl_customer_features.csv) vốn chỉ dùng cho EDA.
     feat = load_model_features()
     if feat is not None:
         demo_cols = [c for c in (["customer_id"] + num_cols + cat_cols) if c in feat.columns]

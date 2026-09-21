@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-"""Tiện ích dùng chung cho web app BNPL Churn — load dữ liệu/model (có cache) và style biểu đồ."""
 from pathlib import Path
 
 import joblib
@@ -12,18 +10,15 @@ DATA_DIR = ROOT / "data"
 MODELS_DIR = ROOT / "models"
 REPORTS_DIR = ROOT / "reports"
 
-
-# Bảng màu tiết chế: 1 màu chủ đạo + 1 màu nhấn + xám trung tính
-ACCENT = "#2F5D8A"      # xanh đậm — phần lớn biểu đồ
-ACCENT_2 = "#C0504D"    # đỏ gạch — chỉ dùng cho churn / cảnh báo
-MUTED = "#9AA5B1"       # xám — đường tham chiếu, nhãn phụ
-LIGHT = "#E6ECF2"       # xám nhạt — lưới, khung
+ACCENT = "#2F5D8A"
+ACCENT_2 = "#C0504D"
+MUTED = "#9AA5B1"
+LIGHT = "#E6ECF2"
 
 CHURN_COLORS = {0: ACCENT, 1: ACCENT_2}
 
-
 def apply_chart_style():
-    """Style matplotlib tối giản: bỏ viền trên/phải, lưới mờ, chữ nhỏ vừa phải."""
+
     plt.rcParams.update({
         "figure.dpi": 110,
         "axes.spines.top": False,
@@ -43,42 +38,34 @@ def apply_chart_style():
         "axes.unicode_minus": False,
     })
 
-
 def section(title: str, note: str | None = None):
-    """Tiêu đề mục gọn: gạch ngang + chữ đậm, chú thích nhỏ (nếu có)."""
+
     st.markdown("---")
     st.markdown(f"**{title}**")
     if note:
         st.caption(note)
-
 
 @st.cache_data(show_spinner=False)
 def load_transactions():
     p = DATA_DIR / "bnpl_transactions_clean.csv"
     return pd.read_csv(p, parse_dates=["transaction_date"]) if p.exists() else None
 
-
 @st.cache_data(show_spinner=False)
 def load_customer_features():
-    """Bảng đặc trưng TOÀN KỲ (T11) — 43 cột, có lifecycle_segment/churn_label.
-    Chỉ dùng cho EDA ở Trang 1-2 (mục 3.3 báo cáo). KHÔNG dùng để huấn luyện/dự báo."""
+
     p = DATA_DIR / "bnpl_customer_features.csv"
     return pd.read_csv(p) if p.exists() else None
 
-
 @st.cache_data(show_spinner=False)
 def load_model_features():
-    """Bảng đặc trưng tính tại mốc T_ref (T14) — 27 đặc trưng + churn.
-    Dùng cho Trang 3 (file mẫu chấm điểm hàng loạt) và huấn luyện (mục 3.4 báo cáo)."""
+
     p = DATA_DIR / "bnpl_model_features.csv"
     return pd.read_csv(p) if p.exists() else None
-
 
 @st.cache_data(show_spinner=False)
 def load_report(name: str):
     p = REPORTS_DIR / name
     return pd.read_csv(p, index_col=0) if p.exists() else None
-
 
 GDRIVE_MODEL_URL = ""
 
@@ -88,9 +75,8 @@ MODEL_CANDIDATES = [
     Path(__file__).resolve().parent / "models" / "churn_model_final.pkl",
 ]
 
-
 def _wrap_bare_pipeline(obj):
-    """Nếu artifact chỉ là Pipeline (không có metadata), dựng metadata tối thiểu từ bảng đặc trưng T_ref."""
+
     feat_path = DATA_DIR / "bnpl_model_features.csv"
     if not feat_path.exists():
         return None
@@ -106,9 +92,8 @@ def _wrap_bare_pipeline(obj):
                       for c in num_cols},
         "cat_values": {c: sorted(X[c].dropna().unique().tolist()) for c in cat_cols},
         "metrics_test": {}, "churn_rate": float(y.mean()) if y is not None else 0.0,
-        "top_shap_features": {}, "T_ref": "—",
+        "top_shap_features": {}, "T_ref": "-",
     }
-
 
 def _download_from_drive(url: str, dest: Path) -> bool:
     try:
@@ -119,10 +104,9 @@ def _download_from_drive(url: str, dest: Path) -> bool:
     except Exception:
         return False
 
-
 @st.cache_resource(show_spinner=False)
 def load_artifact():
-    """Trả về dict artifact, hoặc None. Lý do lỗi (nếu có) được ghi vào st.session_state['model_load_error']."""
+
     tried = []
     for p in MODEL_CANDIDATES:
         tried.append(str(p))
@@ -134,7 +118,7 @@ def load_artifact():
     if not url:
         try:
             url = st.secrets.get("GDRIVE_MODEL_URL", "")
-        except Exception:      
+        except Exception:
             url = ""
     if url:
         dest = MODELS_DIR / "churn_model_final.pkl"
@@ -145,7 +129,6 @@ def load_artifact():
 
     st.session_state["model_load_error"] = tried
     return None
-
 
 def require(obj, what: str, hint: str):
     if obj is None:

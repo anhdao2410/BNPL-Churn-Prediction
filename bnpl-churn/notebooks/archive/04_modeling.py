@@ -1,19 +1,3 @@
-# -*- coding: utf-8 -*-
-# %% [markdown]
-# # 04 — Xây dựng & đánh giá 3 mô hình dự báo Churn (Logistic / Random Forest / XGBoost)
-#
-# **Task T14** · Owner: Đào · Lan review · Phục vụ mục **3.2** (đặc trưng), **3.4** (huấn luyện) và
-# **3.5** (đánh giá, so sánh, chọn mô hình).
-#
-# **Dữ liệu:** log giao dịch thật của nhóm (`bnpl_transactions_clean.csv`, `bnpl_customers_clean.csv`) —
-# KHÔNG dùng trực tiếp `bnpl_customer_features.csv`, vì file đó tổng hợp đặc trưng trên **toàn bộ** cửa sổ
-# quan sát (kể cả giai đoạn dùng để tính nhãn), nên `recency_days` trong đó đồng nhất về mặt toán học với
-# nhãn `churn_60d` (churn = recency_days ≥ 60) → đưa thẳng vào làm feature là **rò rỉ nhãn hoàn toàn**,
-# model sẽ đạt AUC ≈ 1.0 một cách vô nghĩa. Notebook này **tính lại đặc trưng từ log giao dịch gốc**, chỉ
-# dùng dữ liệu tính đến một mốc tham chiếu `T_ref`, và gán nhãn từ cửa sổ **sau** `T_ref` — đúng chuẩn
-# chống rò rỉ dữ liệu (time-based split).
-
-# %%
 import os, json
 import numpy as np
 import pandas as pd
@@ -45,28 +29,17 @@ MODELS_DIR = f"{BASE_DIR}/models"
 for d in (FIG_DIR, MODELS_DIR):
     os.makedirs(d, exist_ok=True)
 
-# (Nếu mục 2 đã load sẵn tx/cust, có thể bỏ 2 dòng dưới — giữ lại để mục 4 chạy độc lập được)
 tx = pd.read_csv(f"{DATA_DIR}/bnpl_transactions_clean.csv", parse_dates=["transaction_date"])
 cust = pd.read_csv(f"{DATA_DIR}/bnpl_customers_clean.csv", parse_dates=["activation_date"])
 
 OBS_DATE = pd.Timestamp("2024-12-30")
-CHURN_WINDOW_DAYS = 60          # đúng định nghĩa đã chốt ở T02
+CHURN_WINDOW_DAYS = 60
 T_ref = OBS_DATE - pd.Timedelta(days=CHURN_WINDOW_DAYS)
 
 print(f"Giao dịch: {len(tx):,} | Khách đăng ký: {len(cust):,}")
 print(f"OBS_DATE = {OBS_DATE:%d/%m/%Y} | T_ref = {T_ref:%d/%m/%Y} (mốc tính đặc trưng)")
-print(f"Cửa sổ nhãn: ({T_ref:%d/%m/%Y}, {OBS_DATE:%d/%m/%Y}] — {CHURN_WINDOW_DAYS} ngày")
+print(f"Cửa sổ nhãn: ({T_ref:%d/%m/%Y}, {OBS_DATE:%d/%m/%Y}] - {CHURN_WINDOW_DAYS} ngày")
 
-# %% [markdown]
-# ## 1. Gán nhãn Churn không rò rỉ (mục 3.1.2)
-#
-# - **Cửa sổ đặc trưng**: mọi giao dịch **đến `T_ref`** → dùng để tính đặc trưng hành vi.
-# - **Cửa sổ nhãn**: `(T_ref, OBS_DATE]` — khách **không có** giao dịch nào trong cửa sổ này ⇒ `churn = 1`.
-# - **Tập mô hình hóa**: chỉ gồm khách đã có **ít nhất 1 giao dịch trước `T_ref`** — khách hoàn toàn chưa
-#   từng giao dịch (nhóm "kích hoạt hụt", đã phân tích riêng ở T13) không thuộc phạm vi bài toán dự báo
-#   churn hành vi này.
-
-# %%
 hist = tx[tx.transaction_date <= T_ref].copy()
 future = tx[(tx.transaction_date > T_ref) & (tx.transaction_date <= OBS_DATE)]
 active_future = set(future.customer_id.unique())
@@ -76,19 +49,8 @@ print(f"Khách có giao dịch trước T_ref (population mô hình): {len(pop_i
 
 y_map = pd.Series(~np.isin(pop_ids, list(active_future)), index=pop_ids).astype(int)
 print(f"Churn rate trên population này: {y_map.mean():.2%} ({y_map.sum():,}/{len(y_map):,})")
-print("→ Khớp sát với churn_60d gốc (17,6–18,3% tùy population) — xác nhận cách gán nhãn nhất quán với T02.")
+print("-> Khớp sát với churn_60d gốc (17,6-18,3% tùy population) - xác nhận cách gán nhãn nhất quán với T02.")
 
-# %% [markdown]
-# ## 2. Trích xuất đặc trưng — chỉ từ dữ liệu tính đến `T_ref` (mục 3.2.2)
-#
-# Ba nhóm đặc trưng:
-# 1. **RFM mở rộng** từ lịch sử giao dịch (`hist`) — Recency/Frequency/Monetary tại `T_ref`.
-# 2. **Hành vi thanh toán**: tỷ lệ trễ hạn, tỷ lệ dùng khuyến mãi, đa dạng danh mục.
-# 3. **Đặc trưng tĩnh** từ hồ sơ khách hàng (`cust`) — nhân khẩu học, hạn mức, kênh giới thiệu.
-#
-# Toàn bộ đều **tính tại thời điểm `T_ref`**, không dùng bất kỳ thông tin nào sau mốc này.
-
-# %%
 def build_features(hist: pd.DataFrame, t_ref: pd.Timestamp) -> pd.DataFrame:
     g = hist.sort_values("transaction_date").groupby("customer_id")
     f = pd.DataFrame(index=g.size().index)
@@ -110,7 +72,6 @@ def build_features(hist: pd.DataFrame, t_ref: pd.Timestamp) -> pd.DataFrame:
     f["mean_inter_days"] = g["transaction_date"].apply(lambda s: s.diff().dt.days.mean())
     f["top_category"]  = g["payment_category"].agg(lambda s: s.mode().iloc[0])
 
-    # Hành vi thanh toán & khuyến mãi
     f["late_rate"]     = g["repayment_status"].apply(lambda s: (s == "Late").mean())
     f["partial_rate"]  = g["repayment_status"].apply(lambda s: (s == "Partial").mean())
     f["promo_rate"]    = g["promo_applied"].apply(lambda s: (s != "No Promo").mean())
@@ -123,7 +84,6 @@ for c in ["freq_30d", "freq_90d", "freq_180d", "monetary_90d"]:
 feat["amount_std"] = feat["amount_std"].fillna(0)
 feat["mean_inter_days"] = feat["mean_inter_days"].fillna(feat["tenure_days"])
 
-# Ghép đặc trưng tĩnh từ hồ sơ khách hàng
 static_cols = ["age", "gender", "city_tier", "kyc_verified", "phone_verified",
               "device_type", "referral_source", "credit_limit_vnd"]
 feat = feat.join(cust.set_index("customer_id")[static_cols])
@@ -133,13 +93,9 @@ feat["churn"] = y_map.reindex(feat.index)
 print(f"Ma trận đặc trưng: {feat.shape} | Churn rate: {feat['churn'].mean():.2%}")
 feat.head(3)
 
-# %%
-# Lưu ma trận đặc trưng đầy đủ để notebook T15 (Feature Importance & Model Selection)
-# tái tạo đúng train/test split và làm SHAP mà không phải chép lại logic feature engineering.
 feat.to_csv(f"{DATA_DIR}/bnpl_model_features.csv", index_label="customer_id")
 print("Đã lưu ../data/bnpl_model_features.csv cho notebook 05 (T15).")
 
-# %%
 data_dict = {
     "recency_days": "Số ngày từ giao dịch gần nhất đến T_ref",
     "tenure_days": "Số ngày từ giao dịch đầu tiên đến T_ref",
@@ -161,14 +117,6 @@ data_dict = {
 }
 pd.Series(data_dict, name="Mô tả").to_frame()
 
-# %% [markdown]
-# ## 3. Chia Train/Test & thiết lập pipeline tiền xử lý (mục 3.4.1)
-# - Chia **80/20, stratified** để giữ nguyên tỷ lệ churn ở cả hai tập.
-# - Impute + chuẩn hóa/encode đặt **trong pipeline**, fit trên train — không rò rỉ thông tin từ test.
-# - Mất cân bằng lớp xử lý bằng `class_weight="balanced"` (LR, RF) / `scale_pos_weight` (XGBoost) —
-#   **không dùng SMOTE**, đúng quyết định đã chốt trong mục lục v2 và Chương 2.
-
-# %%
 num_cols = ["recency_days", "tenure_days", "freq_total", "freq_30d", "freq_90d", "freq_180d",
            "monetary_90d", "monetary_total", "aov", "amount_std", "unique_categories",
            "txn_per_month", "mean_inter_days", "late_rate", "partial_rate", "promo_rate",
@@ -202,10 +150,6 @@ models = {
                               tree_method="hist", n_jobs=-1, random_state=RANDOM_STATE))]),
 }
 
-# %% [markdown]
-# ## 4. Cross-validation 5-fold trên tập train (mục 3.4.2)
-
-# %%
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
 cv_table = pd.DataFrame([
     {"Model": name,
@@ -215,10 +159,6 @@ cv_table = pd.DataFrame([
 ]).set_index("Model").round(4)
 cv_table
 
-# %% [markdown]
-# ## 5. Đánh giá trên tập test (mục 3.5.1)
-
-# %%
 rows, fitted = [], {}
 for name, m in models.items():
     m.fit(X_tr, y_tr)
@@ -233,7 +173,6 @@ results = pd.DataFrame(rows).set_index("Model").round(4)
 results.to_csv(f"{REPORTS_DIR}/model_comparison_bnpl.csv")
 results
 
-# %%
 fig, ax = plt.subplots(figsize=(7, 6))
 for name, m in fitted.items():
     RocCurveDisplay.from_estimator(m, X_te, y_te, ax=ax, name=name)
@@ -250,13 +189,9 @@ print(classification_report(y_te, best_model.predict(X_te), target_names=["Khôn
 fig, ax = plt.subplots(figsize=(5, 4.5))
 ConfusionMatrixDisplay.from_estimator(best_model, X_te, y_te, display_labels=["Không churn", "Churn"],
                                       cmap="Blues", colorbar=False, ax=ax)
-ax.set_title(f"Ma trận nhầm lẫn — {best_name}")
+ax.set_title(f"Ma trận nhầm lẫn - {best_name}")
 plt.tight_layout(); plt.savefig(f"{FIG_DIR}/bnpl_confusion_matrix.png", bbox_inches="tight"); plt.show()
 
-# %% [markdown]
-# ## 6. Tầm quan trọng đặc trưng (mục 3.5.2, đầu vào T15)
-
-# %%
 def clean_names(pipe):
     return [n.split("__", 1)[1] for n in pipe.named_steps["pre"].get_feature_names_out()]
 
@@ -266,18 +201,14 @@ imp = {name: pd.Series(fitted[name].named_steps["clf"].feature_importances_, ind
 fig, axes = plt.subplots(1, 2, figsize=(13.5, 5))
 for ax, name in zip(axes, imp):
     imp[name].sort_values().tail(12).plot(kind="barh", ax=ax, color="#2a9d8f")
-    ax.set_title(f"Top 12 đặc trưng — {name}")
+    ax.set_title(f"Top 12 đặc trưng - {name}")
 plt.tight_layout(); plt.savefig(f"{FIG_DIR}/bnpl_feature_importance.png", bbox_inches="tight"); plt.show()
 
 lr_coefs = pd.Series(fitted["Logistic Regression"].named_steps["clf"].coef_[0],
                      index=clean_names(fitted["Logistic Regression"])).sort_values()
-print("LR — 5 hệ số đẩy churn mạnh nhất:\n", lr_coefs.tail(5).round(3).to_string())
-print("\nLR — 5 hệ số kéo giảm churn mạnh nhất:\n", lr_coefs.head(5).round(3).to_string())
+print("LR - 5 hệ số đẩy churn mạnh nhất:\n", lr_coefs.tail(5).round(3).to_string())
+print("\nLR - 5 hệ số kéo giảm churn mạnh nhất:\n", lr_coefs.head(5).round(3).to_string())
 
-# %% [markdown]
-# ## 7. Tuning cơ bản XGBoost (mục 3.4.3)
-
-# %%
 grid = GridSearchCV(
     Pipeline([("pre", make_pre()),
               ("clf", XGBClassifier(n_estimators=300, subsample=0.8, colsample_bytree=0.8,
@@ -295,10 +226,6 @@ if tuned_auc >= results.loc[best_name, "AUC"]:
     best_name, best_model = "XGBoost (tuned)", grid.best_estimator_
 print("Model cuối cùng:", best_name)
 
-# %% [markdown]
-# ## 8. Chọn ngưỡng phân lớp theo mục tiêu kinh doanh (mục 3.5.3)
-
-# %%
 proba_best = best_model.predict_proba(X_te)[:, 1]
 prec, rec, thr = precision_recall_curve(y_te, proba_best)
 fig, ax = plt.subplots(figsize=(7.5, 4.5))
@@ -306,14 +233,10 @@ ax.plot(thr, prec[:-1], label="Precision")
 ax.plot(thr, rec[:-1], label="Recall")
 ax.axvline(0.5, color="grey", ls="--", lw=1, label="Ngưỡng mặc định 0.5")
 ax.set_xlabel("Ngưỡng phân lớp"); ax.set_ylabel("Giá trị")
-ax.set_title(f"Precision & Recall theo ngưỡng — {best_name}")
+ax.set_title(f"Precision & Recall theo ngưỡng - {best_name}")
 ax.legend(); plt.tight_layout()
 plt.savefig(f"{FIG_DIR}/bnpl_threshold_analysis.png", bbox_inches="tight"); plt.show()
 
-# %% [markdown]
-# ## 9. Lưu mô hình cho web app (Chương 4, deliverable D5)
-
-# %%
 num_stats = {c: {"min": float(np.nanmin(X[c])), "med": float(np.nanmedian(X[c])),
                  "max": float(np.nanmax(X[c]))} for c in num_cols}
 cat_values = {c: sorted(X[c].dropna().unique().tolist()) for c in cat_cols}
@@ -333,16 +256,5 @@ with open(f"{MODELS_DIR}/metrics_bnpl.json", "w", encoding="utf-8") as f:
               f, ensure_ascii=False, indent=2)
 
 chk = joblib.load(f"{MODELS_DIR}/churn_model_bnpl.pkl")
-print("Load lại OK —", chk["best_name"], "| demo proba:",
+print("Load lại OK -", chk["best_name"], "| demo proba:",
       chk["pipeline"].predict_proba(X_te.iloc[:3])[:, 1].round(3))
-
-# %% [markdown]
-# ## ✅ Kết luận cho báo cáo
-# - Đây là kết quả **trên dữ liệu thật, đã kiểm soát rò rỉ nhãn** bằng thiết kế `T_ref`: đặc trưng chỉ
-#   tính từ giao dịch ≤ T_ref (31/10/2024), nhãn churn suy từ hoạt động sau đó — khác hẳn cách dùng thẳng
-#   `bnpl_customer_features.csv` (có `recency_days` trùng khớp với chính định nghĩa nhãn).
-# - Mục tiêu **M3 (AUC ≥ 0.80)** đạt được minh bạch, không nhờ rò rỉ dữ liệu.
-# - 3 đặc trưng dự kiến quan trọng nhất: `recency_days`, `freq_30d/90d`, `mean_inter_days` — khớp với phát
-#   hiện ở T13 rằng khoảng cách giữa các giao dịch là tín hiệu sớm của rời bỏ.
-# - Khi Lan/Đào cần đổi `CHURN_WINDOW_DAYS` (ví dụ thử 30 hoặc 90 ngày theo bảng phân tích ở T02), chỉ cần
-#   sửa biến ở đầu notebook và chạy lại toàn bộ — mọi bảng/hình tự cập nhật.

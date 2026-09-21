@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-"""Kiểm thử tự động ứng dụng Streamlit — 10 kịch bản TC01–TC10 (mục 4.3 báo cáo).
-Chạy từ thư mục bnpl-churn/:  python -m pytest tests/ -q
-"""
 import sys
 import time
 from pathlib import Path
@@ -15,14 +11,12 @@ from streamlit.testing.v1 import AppTest
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "streamlit_app"
 PAGES = [APP / "1_Tổng_quan.py",
-         APP / "pages" / "2_Cohort_và_Danh_mục.py",
+         APP / "pages" / "2_Cohort_và_Danh_Mục.py",
          APP / "pages" / "3_Dự_báo_Churn.py"]
 TIMEOUT = 120
 
-
 def _run(path):
     return AppTest.from_file(str(path), default_timeout=TIMEOUT).run()
-
 
 def _metric(at, label_part):
     for m in at.metric:
@@ -30,34 +24,26 @@ def _metric(at, label_part):
             return m.value
     raise AssertionError(f"Không thấy metric chứa '{label_part}'")
 
-
 @pytest.fixture(scope="module")
 def artifact():
     return joblib.load(ROOT / "models" / "churn_model_final.pkl")
-
 
 @pytest.fixture(scope="module")
 def model_features():
     return pd.read_csv(ROOT / "data" / "bnpl_model_features.csv")
 
-
-# TC01 — ba trang khởi động không ngoại lệ
 @pytest.mark.parametrize("page", PAGES, ids=[p.name for p in PAGES])
 def test_tc01_pages_start(page):
     at = _run(page)
     assert not at.exception, [str(e) for e in at.exception]
     assert not at.error
 
-
-# TC02 — Trang 1: lọc riêng FPU → churn 67,5% (mục 3.3.2)
 def test_tc02_fpu_filter():
     at = _run(PAGES[0])
     ms = [x for x in at.sidebar.multiselect if x.label == "Phân khúc vòng đời"][0]
     ms.set_value(["FPU"]); at.run()
     assert _metric(at, "Churn rate") == "67.5%"
 
-
-# TC03 — Trang 1: bộ lọc rỗng → cảnh báo, không sập
 def test_tc03_empty_filter():
     at = _run(PAGES[0])
     ms = [x for x in at.sidebar.multiselect if x.label == "Danh mục thanh toán chính"][0]
@@ -65,16 +51,12 @@ def test_tc03_empty_filter():
     assert not at.exception
     assert any("không còn khách hàng" in w.value for w in at.warning)
 
-
-# TC04 — Trang 2: mốc retention tháng 1/3/6 khớp notebook 03
 def test_tc04_retention_milestones():
     at = _run(PAGES[1])
     assert _metric(at, "tháng 1") == "68.7%"
     assert _metric(at, "Tháng 3") == "73.5%"
     assert _metric(at, "Tháng 6") == "71.1%"
 
-
-# TC05 — Trang 3: dự báo với giá trị mặc định
 def test_tc05_default_prediction():
     at = _run(PAGES[2])
     t = time.time(); at.button[0].click(); at.run(); elapsed = time.time() - t
@@ -82,10 +64,8 @@ def test_tc05_default_prediction():
     p = float(val.strip("%")) / 100
     assert 0.0 <= p <= 1.0
     assert len(at.metric) >= 3
-    assert elapsed < 5.0  # NF1: < 1 s trên máy thông thường; nới lỏng cho CI
+    assert elapsed < 5.0
 
-
-# TC06 — Trang 3: tăng recency, bỏ giao dịch gần đây → xác suất tăng
 def test_tc06_monotonic_recency():
     at = _run(PAGES[2])
     at.number_input(key="in_recency_days").set_value(5.0)
@@ -99,8 +79,6 @@ def test_tc06_monotonic_recency():
     high = float(_metric(at, "Xác suất churn").strip("%"))
     assert high > low
 
-
-# TC07 — chấm điểm hàng loạt 1.000 khách (cùng pipeline .pkl như app)
 def test_tc07_batch_1000(artifact, model_features):
     pipe, cols = artifact["pipeline"], artifact["num_cols"] + artifact["cat_cols"]
     batch = model_features.head(1000)
@@ -109,24 +87,18 @@ def test_tc07_batch_1000(artifact, model_features):
     assert probas.min() >= 0 and probas.max() <= 1
     assert elapsed < 3.0
 
-
-# TC08 — CSV thiếu cột bắt buộc → báo đúng tên cột
 def test_tc08_missing_column(artifact, model_features):
     cols = artifact["num_cols"] + artifact["cat_cols"]
     batch = model_features.head(5).drop(columns=["recency_days"])
     missing = [c for c in cols if c not in batch.columns]
     assert missing == ["recency_days"]
 
-
-# TC09 — đối chiếu xác suất với notebook trên 1.000 khách
 def test_tc09_auc_consistency(artifact, model_features):
     pipe, cols = artifact["pipeline"], artifact["num_cols"] + artifact["cat_cols"]
     s = model_features.head(1000)
     auc = roc_auc_score(s["churn"], pipe.predict_proba(s[cols])[:, 1])
     assert auc > 0.95
 
-
-# TC10 — hạ ngưỡng 0,50 → 0,30: số khách gắn cờ tăng
 def test_tc10_threshold(artifact, model_features):
     pipe, cols = artifact["pipeline"], artifact["num_cols"] + artifact["cat_cols"]
     p = pipe.predict_proba(model_features.head(1000)[cols])[:, 1]
