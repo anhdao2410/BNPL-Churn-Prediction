@@ -1,4 +1,5 @@
 import json
+import os
 
 import joblib
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ plt.rcParams["figure.dpi"] = 110
 sns.set_theme(style="whitegrid")
 RANDOM_STATE = 42
 
-BASE_DIR = "/content/drive/MyDrive/ChuyenDe_BNPL_Churn"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = f"{BASE_DIR}/data"
 REPORTS_DIR = f"{BASE_DIR}/reports"
 FIG_DIR = f"{REPORTS_DIR}/figures"
@@ -44,16 +45,23 @@ qualitative = pd.DataFrame(
             "Cao (hệ số tuyến tính)",
             "Trung bình (feature_importances_)",
             "Trung bình-Thấp (cần SHAP)",
+            "Trung bình (đã bổ trợ bằng SHAP)",
         ],
-        "Độ phức tạp huấn luyện": ["Thấp", "Trung bình", "Cao (nhiều siêu tham số)"],
-        "Độ nhạy với outlier": ["Cao (cần chuẩn hóa)", "Thấp", "Thấp"],
+        "Độ phức tạp huấn luyện": [
+            "Thấp",
+            "Trung bình",
+            "Cao (nhiều siêu tham số)",
+            "Cao (GridSearchCV)",
+        ],
+        "Độ nhạy với outlier": ["Cao (cần chuẩn hóa)", "Thấp", "Thấp", "Thấp"],
         "Phù hợp production": [
             "Dễ giám sát/giải trình",
             "Cân bằng",
-            "Hiệu năng cao nhất, cần theo dõi thêm",
+            "Cấu hình cơ sở trước khi tinh chỉnh",
+            "Mô hình chính thức của ứng dụng",
         ],
     },
-    index=["Logistic Regression", "Random Forest", "XGBoost"],
+    index=["Logistic Regression", "Random Forest", "XGBoost", "XGBoost (tuned)"],
 )
 
 summary_table = results.join(qualitative)
@@ -67,12 +75,13 @@ metrics_plot.plot(
 )
 axes[0].set_ylim(0, 1)
 axes[0].set_ylabel("Điểm số")
-axes[0].set_title("So sánh 4 chỉ số chính giữa 3 mô hình")
+axes[0].set_title("So sánh 4 chỉ số chính giữa các mô hình")
 axes[0].legend(fontsize=8, ncol=2)
 axes[0].tick_params(axis="x", rotation=15)
 
 axes[1].scatter(
-    results["Precision"], results["Recall"], s=180, c=["#457b9d", "#2a9d8f", "#e76f51"]
+    results["Precision"], results["Recall"], s=180,
+    c=["#457b9d", "#2a9d8f", "#f2b134", "#e76f51"][: len(results)],
 )
 for name, row in results.iterrows():
     axes[1].annotate(
@@ -141,7 +150,7 @@ compare
 
 final_name = artifact["best_name"]
 final_pipe = artifact["pipeline"]
-final_metrics = results.loc[final_name.replace(" (tuned)", "")].to_dict()
+final_metrics = results.loc[final_name].to_dict()
 
 final_artifact = {
     **artifact,

@@ -36,7 +36,7 @@ plt.rcParams["figure.dpi"] = 110
 sns.set_theme(style="whitegrid")
 RANDOM_STATE = 42
 
-BASE_DIR = "/content/drive/MyDrive/ChuyenDe_BNPL_Churn"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = f"{BASE_DIR}/data"
 REPORTS_DIR = f"{BASE_DIR}/reports"
 FIG_DIR = f"{REPORTS_DIR}/figures"
@@ -244,7 +244,7 @@ models = {
             (
                 "clf",
                 RandomForestClassifier(
-                    n_estimators=300,
+                    n_estimators=500,
                     min_samples_leaf=5,
                     class_weight="balanced",
                     n_jobs=-1,
@@ -314,14 +314,14 @@ for name, m in models.items():
         }
     )
 results = pd.DataFrame(rows).set_index("Model").round(4)
-results.to_csv(f"{REPORTS_DIR}/model_comparison_bnpl.csv")
+results.to_csv(f"{REPORTS_DIR}/model_comparison_bnpl.csv", encoding="utf-8-sig")
 results
 
 fig, ax = plt.subplots(figsize=(7, 6))
 for name, m in fitted.items():
     RocCurveDisplay.from_estimator(m, X_te, y_te, ax=ax, name=name)
 ax.plot([0, 1], [0, 1], "k--", lw=1, label="Ngẫu nhiên (AUC = 0.5)")
-ax.set_title("So sánh đường cong ROC trên tập test (dữ liệu BNPL thật)")
+ax.set_title("So sánh đường cong ROC trên tập kiểm tra")
 ax.legend(loc="lower right", fontsize=9)
 plt.tight_layout()
 plt.savefig(f"{FIG_DIR}/bnpl_roc_comparison.png", bbox_inches="tight")
@@ -411,6 +411,17 @@ tuned_proba = grid.best_estimator_.predict_proba(X_te)[:, 1]
 tuned_auc = roc_auc_score(y_te, tuned_proba)
 print("AUC test sau tuning:", round(tuned_auc, 4))
 
+tuned_pred = (tuned_proba >= 0.5).astype(int)
+results.loc["XGBoost (tuned)"] = [
+    round(roc_auc_score(y_te, tuned_proba), 4),
+    round(average_precision_score(y_te, tuned_proba), 4),
+    round(f1_score(y_te, tuned_pred), 4),
+    round(precision_score(y_te, tuned_pred), 4),
+    round(recall_score(y_te, tuned_pred), 4),
+    round(accuracy_score(y_te, tuned_pred), 4),
+]
+results.to_csv(f"{REPORTS_DIR}/model_comparison_bnpl.csv", encoding="utf-8-sig")
+
 if tuned_auc >= results.loc[best_name, "AUC"]:
     best_name, best_model = "XGBoost (tuned)", grid.best_estimator_
 print("Model cuối cùng:", best_name)
@@ -449,9 +460,9 @@ artifact = {
     "T_ref": str(T_ref.date()),
     "OBS_DATE": str(OBS_DATE.date()),
     "churn_window_days": CHURN_WINDOW_DAYS,
-    "metrics_test": results.loc[best_name.replace(" (tuned)", "")].to_dict(),
+    "metrics_test": results.loc[best_name].to_dict(),
     "churn_rate": float(y.mean()),
-    "data_source": "bnpl_transactions_clean.csv + bnpl_customers_clean.csv (dữ liệu thật của nhóm)",
+    "data_source": "bnpl_transactions_clean.csv + bnpl_customers_clean.csv (dữ liệu tổng hợp của nhóm)",
     "trained_at": str(pd.Timestamp.now()),
 }
 joblib.dump(artifact, f"{MODELS_DIR}/churn_model_bnpl.pkl")
